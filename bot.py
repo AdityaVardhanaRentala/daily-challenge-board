@@ -1,25 +1,22 @@
 import discord
 from discord.ext import commands, tasks
-from playwright.async_api import async_playwright
+import requests
+from bs4 import BeautifulSoup
 import json
 import os
 import datetime
 import pytz
 
-import os
 TOKEN = os.getenv("DISCORD_TOKEN")
-
-
 CONFIG_FILE = "config.json"
 IST = pytz.timezone("Asia/Kolkata")
 
 intents = discord.Intents.default()
 intents.message_content = True
-
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 
-# ---------------- CONFIG MANAGEMENT ---------------- #
+# ---------------- CONFIG ---------------- #
 
 def load_config():
     if not os.path.exists(CONFIG_FILE):
@@ -35,7 +32,7 @@ def save_config(data):
 
 # ---------------- FETCH DAILIES ---------------- #
 
-async def fetch_dailies():
+def fetch_dailies():
     general = []
     roles = {
         "bounty": [],
@@ -45,49 +42,49 @@ async def fetch_dailies():
         "naturalist": []
     }
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.goto("https://rdo-dailies.com/", timeout=60000)
+    # Fetch homepage
+    response = requests.get("https://rdo-dailies.com/")
+    soup = BeautifulSoup(response.text, "html.parser")
 
-        await page.wait_for_selector("div.rows", timeout=60000)
-        rows = await page.query_selector_all("div.rows")
+    # Fetch language file
+    lang_response = requests.get("https://rdo-dailies.com/website/languages/en.json")
+    lang_data = lang_response.json()
 
-        for row in rows:
-            goal_el = await row.query_selector("p.daily-goal")
-            text_el = await row.query_selector("p.daily-general")
+    rows = soup.find_all("div", class_="rows")
 
-            if not goal_el or not text_el:
-                continue
+    for row in rows:
+        goal = row.find("p", class_="daily-goal")
+        text = row.find("p", class_="daily-general")
 
-            quantity = (await goal_el.inner_text()).strip()
-            text = (await text_el.inner_text()).strip()
-            data_text = await text_el.get_attribute("data-text")
+        if not goal or not text:
+            continue
 
-            if not quantity or not text or not data_text:
-                continue
+        quantity = goal.get("data-goal")
+        key = text.get("data-text")
 
-            formatted = f"• {quantity} {text}"
+        if not quantity or not key:
+            continue
 
-            if data_text.startswith("mpgc_"):
-                general.append(formatted)
+        readable = lang_data.get(key, key)
+        formatted = f"• {quantity} {readable}"
 
-            elif data_text.startswith("mprc_"):
-                for role in roles.keys():
-                    if role in data_text:
-                        roles[role].append(formatted)
-                        break
+        if key.startswith("mpgc_"):
+            general.append(formatted)
 
-        await browser.close()
+        elif key.startswith("mprc_"):
+            for role in roles:
+                if role in key:
+                    roles[role].append(formatted)
+                    break
 
-    # Keep only first 3 role challenges (Rank 15+)
+    # Keep only Rank 15+ (first 3)
     for role in roles:
         roles[role] = roles[role][:3]
 
     return general, roles
 
 
-# ---------------- EMBED BUILDER ---------------- #
+# ---------------- EMBED ---------------- #
 
 def build_embed(general, roles):
     embed = discord.Embed(
@@ -119,7 +116,7 @@ def build_embed(general, roles):
                 inline=False
             )
 
-    embed.set_footer(text="Built for the people by T00R.")
+    embed.set_footer(text="Built for people by T00R.")
     return embed
 
 
@@ -138,7 +135,7 @@ async def on_ready():
 async def dailies(interaction: discord.Interaction):
     await interaction.response.defer()
 
-    general, roles = await fetch_dailies()
+    general, roles = fetch_dailies()
     embed = build_embed(general, roles)
 
     await interaction.followup.send(embed=embed)
@@ -166,7 +163,7 @@ async def setdailychannel_error(interaction: discord.Interaction, error):
         )
 
 
-# ---------------- AUTO POST TASK ---------------- #
+# ---------------- AUTO POST ---------------- #
 
 @tasks.loop(minutes=1)
 async def auto_post():
@@ -184,7 +181,7 @@ async def auto_post():
             if not channel:
                 continue
 
-            general, roles = await fetch_dailies()
+            general, roles = fetch_dailies()
             embed = build_embed(general, roles)
 
             await channel.send(embed=embed)
