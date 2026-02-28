@@ -8,6 +8,7 @@ import datetime
 import pytz
 from flask import Flask
 import threading
+print("=== VERSION CHECK 28 FEB 1 ===")
 
 # ---------------- WEB SERVER FOR RENDER ---------------- #
 
@@ -205,6 +206,7 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
 
