@@ -6,6 +6,24 @@ import json
 import os
 import datetime
 import pytz
+from flask import Flask
+from threading import Thread
+
+# ---------------- WEB SERVER FOR RENDER ---------------- #
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Daily Challenge Board is alive."
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
+Thread(target=run_web).start()
+
+# ---------------- DISCORD BOT SETUP ---------------- #
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 CONFIG_FILE = "config.json"
@@ -15,7 +33,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-
 # ---------------- CONFIG ---------------- #
 
 def load_config():
@@ -24,11 +41,9 @@ def load_config():
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
-
 def save_config(data):
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f)
-
 
 # ---------------- FETCH DAILIES ---------------- #
 
@@ -42,11 +57,9 @@ def fetch_dailies():
         "naturalist": []
     }
 
-    # Fetch homepage
     response = requests.get("https://rdo-dailies.com/")
     soup = BeautifulSoup(response.text, "html.parser")
 
-    # Fetch language file
     lang_response = requests.get("https://rdo-dailies.com/website/languages/en.json")
     lang_data = lang_response.json()
 
@@ -70,19 +83,16 @@ def fetch_dailies():
 
         if key.startswith("mpgc_"):
             general.append(formatted)
-
         elif key.startswith("mprc_"):
             for role in roles:
                 if role in key:
                     roles[role].append(formatted)
                     break
 
-    # Keep only Rank 15+ (first 3)
     for role in roles:
         roles[role] = roles[role][:3]
 
     return general, roles
-
 
 # ---------------- EMBED ---------------- #
 
@@ -119,7 +129,6 @@ def build_embed(general, roles):
     embed.set_footer(text="Built for people by T00R.")
     return embed
 
-
 # ---------------- EVENTS ---------------- #
 
 @bot.event
@@ -128,18 +137,14 @@ async def on_ready():
     await bot.tree.sync()
     auto_post.start()
 
-
 # ---------------- COMMANDS ---------------- #
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
     await interaction.response.defer()
-
     general, roles = fetch_dailies()
     embed = build_embed(general, roles)
-
     await interaction.followup.send(embed=embed)
-
 
 @bot.tree.command(name="setdailychannel", description="Set this channel for daily auto-posting")
 @commands.has_permissions(manage_guild=True)
@@ -153,7 +158,6 @@ async def setdailychannel(interaction: discord.Interaction):
         ephemeral=True
     )
 
-
 @setdailychannel.error
 async def setdailychannel_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingPermissions):
@@ -161,7 +165,6 @@ async def setdailychannel_error(interaction: discord.Interaction, error):
             "You need Manage Server permission to use this command.",
             ephemeral=True
         )
-
 
 # ---------------- AUTO POST ---------------- #
 
@@ -183,8 +186,6 @@ async def auto_post():
 
             general, roles = fetch_dailies()
             embed = build_embed(general, roles)
-
             await channel.send(embed=embed)
-
 
 bot.run(TOKEN)
