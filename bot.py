@@ -50,11 +50,9 @@ def normalize_quantity(quantity, readable):
     except:
         return quantity
 
-    # Money is stored as cents
     if "Money made" in readable:
         return qty // 100
 
-    # Some time-based challenges store huge millisecond values
     if qty > 100000:
         return 1
 
@@ -102,18 +100,15 @@ def fetch_dailies():
             qty = normalize_quantity(quantity, readable)
             formatted = f"• {qty} {readable}"
 
-            # General challenges
             if key.startswith("mpgc_"):
                 general.append(formatted)
 
-            # Role challenges
             elif key.startswith("mprc_"):
                 for role in roles:
                     if role in key:
                         roles[role].append(formatted)
                         break
 
-        # Only keep first 3 role challenges (Rank 15+)
         for role in roles:
             roles[role] = roles[role][:3]
 
@@ -171,6 +166,26 @@ async def dailies(interaction: discord.Interaction):
     embed = build_embed(general, roles)
     await interaction.response.send_message(embed=embed)
 
+# ---------------- SET DAILY CHANNEL COMMAND ---------------- #
+
+@bot.tree.command(name="setdailychannel", description="Set this channel for automatic daily posts")
+async def setdailychannel(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message(
+            "You need Manage Server permission to use this command.",
+            ephemeral=True
+        )
+        return
+
+    config = load_config()
+    config[str(interaction.guild.id)] = interaction.channel.id
+    save_config(config)
+
+    await interaction.response.send_message(
+        f"Daily auto-post channel set to {interaction.channel.mention}",
+        ephemeral=True
+    )
+
 # ---------------- AUTO POST ---------------- #
 
 @tasks.loop(minutes=1)
@@ -204,4 +219,3 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
-
