@@ -42,22 +42,6 @@ def save_config(data):
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f)
 
-# ---------------- FORMAT QUANTITY ---------------- #
-
-def format_quantity(quantity, readable):
-    qty = int(quantity)
-
-    if "Money made" in readable:
-        qty = qty // 100
-
-    if qty > 100000:
-        qty = 1
-
-    if any(word.isdigit() for word in readable.split()):
-        return f"• {readable}"
-    else:
-        return f"• {qty} {readable}"
-
 # ---------------- FETCH DAILIES ---------------- #
 
 def fetch_dailies():
@@ -80,53 +64,39 @@ def fetch_dailies():
         soup = BeautifulSoup(response.text, "html.parser")
         lang_data = lang_response.json()
 
-        containers = soup.find_all("div", class_="daily-container")
+        rows = soup.find_all("div", class_="rows")
 
-        for container in containers:
-            icon = container.find("img", class_="icon")
-            if not icon:
+        for row in rows:
+            goal = row.find("p", class_="daily-goal")
+            text = row.find("p", class_="daily-general")
+
+            if not goal or not text:
                 continue
 
-            icon_src = icon.get("src", "")
-            icon_file = icon_src.split("/")[-1].lower()
+            quantity = goal.get("data-goal")
+            key = text.get("data-text")
 
-            rows = container.find_all("div", class_="rows")
-            formatted_rows = []
+            if not quantity or not key:
+                continue
 
-            for row in rows:
-                goal = row.find("p", class_="daily-goal")
-                text = row.find("p", class_="daily-general")
+            readable = lang_data.get(key, key)
 
-                if not goal or not text:
-                    continue
+            formatted = f"• {quantity} {readable}"
 
-                quantity = goal.get("data-goal")
-                key = text.get("data-text")
+            # General challenges
+            if key.startswith("mpgc_"):
+                general.append(formatted)
 
-                if not quantity or not key:
-                    continue
+            # Role challenges
+            elif key.startswith("mprc_"):
+                for role in roles:
+                    if role in key:
+                        roles[role].append(formatted)
+                        break
 
-                readable = lang_data.get(key, key)
-                formatted = format_quantity(quantity, readable)
-                formatted_rows.append(formatted)
-
-            if icon_file == "general_icon.png":
-                general = formatted_rows
-
-            elif icon_file == "bounty_hunter_icon.png":
-                roles["bounty"] = formatted_rows[:3]
-
-            elif icon_file == "trader_icon.png":
-                roles["trader"] = formatted_rows[:3]
-
-            elif icon_file == "collector_icon.png":
-                roles["collector"] = formatted_rows[:3]
-
-            elif icon_file == "moonshiner_icon.png":
-                roles["moonshiner"] = formatted_rows[:3]
-
-            elif icon_file == "naturalist_icon.png":
-                roles["naturalist"] = formatted_rows[:3]
+        # Only keep first 3 role challenges (Rank 15+)
+        for role in roles:
+            roles[role] = roles[role][:3]
 
     except Exception as e:
         print("Error fetching dailies:", e)
@@ -175,8 +145,6 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
     await bot.tree.sync()
     auto_post.start()
-
-# ---------------- COMMAND ---------------- #
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
