@@ -57,40 +57,52 @@ def fetch_dailies():
         "naturalist": []
     }
 
-    response = requests.get("https://rdo-dailies.com/", timeout=10)
-    soup = BeautifulSoup(response.text, "html.parser")
+    try:
+        response = requests.get("https://rdo-dailies.com/", timeout=10)
+        lang_response = requests.get(
+            "https://rdo-dailies.com/website/languages/en.json",
+            timeout=10
+        )
 
-    lang_response = requests.get("https://rdo-dailies.com/website/languages/en.json")
-    lang_data = lang_response.json()
+        response.raise_for_status()
+        lang_response.raise_for_status()
 
-    rows = soup.find_all("div", class_="rows")
+        soup = BeautifulSoup(response.text, "html.parser")
+        lang_data = lang_response.json()
 
-    for row in rows:
-        goal = row.find("p", class_="daily-goal")
-        text = row.find("p", class_="daily-general")
+        rows = soup.find_all("div", class_="rows")
 
-        if not goal or not text:
-            continue
+        for row in rows:
+            goal = row.find("p", class_="daily-goal")
+            text = row.find("p", class_="daily-general")
 
-        quantity = goal.get("data-goal")
-        key = text.get("data-text")
+            if not goal or not text:
+                continue
 
-        if not quantity or not key:
-            continue
+            quantity = goal.get("data-goal")
+            key = text.get("data-text")
 
-        readable = lang_data.get(key, key)
-        formatted = f"• {quantity} {readable}"
+            if not quantity or not key:
+                continue
 
-        if key.startswith("mpgc_"):
-            general.append(formatted)
-        elif key.startswith("mprc_"):
-            for role in roles:
-                if role in key:
-                    roles[role].append(formatted)
-                    break
+            readable = lang_data.get(key, key)
+            formatted = f"• {quantity} {readable}"
 
-    for role in roles:
-        roles[role] = roles[role][:3]
+            if key.startswith("mpgc_"):
+                general.append(formatted)
+
+            elif key.startswith("mprc_"):
+                for role in roles:
+                    if role in key:
+                        roles[role].append(formatted)
+                        break
+
+        # Keep only first 3 role challenges (Rank 15+)
+        for role in roles:
+            roles[role] = roles[role][:3]
+
+    except Exception as e:
+        print("Error fetching dailies:", e)
 
     return general, roles
 
@@ -142,8 +154,10 @@ async def on_ready():
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
     await interaction.response.defer()
-    general, roles = fetch_dailies()
+
+    general, roles = await bot.loop.run_in_executor(None, fetch_dailies)
     embed = build_embed(general, roles)
+
     await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="setdailychannel", description="Set this channel for daily auto-posting")
@@ -184,9 +198,9 @@ async def auto_post():
             if not channel:
                 continue
 
-            general, roles = fetch_dailies()
+            general, roles = await bot.loop.run_in_executor(None, fetch_dailies)
             embed = build_embed(general, roles)
+
             await channel.send(embed=embed)
 
 bot.run(TOKEN)
-
