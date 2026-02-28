@@ -45,20 +45,19 @@ def save_config(data):
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f)
 
-# ---------------- FETCH DAILIES ---------------- #
+# ---------------- FORMAT QUANTITY ---------------- #
 
 def format_quantity(quantity, readable):
     qty = int(quantity)
 
-    # Fix money stored as cents
+    # Money stored as cents
     if "Money made" in readable:
         qty = qty // 100
 
-    # Fix extremely large time-based values (milliseconds etc.)
+    # Millisecond time values
     if qty > 100000:
         qty = 1
 
-    # If readable text already contains numbers, avoid duplication
     words = readable.split()
     contains_number = any(word.isdigit() for word in words)
 
@@ -67,6 +66,7 @@ def format_quantity(quantity, readable):
     else:
         return f"• {qty} {readable}"
 
+# ---------------- FETCH DAILIES ---------------- #
 
 def fetch_dailies():
     general = []
@@ -88,36 +88,51 @@ def fetch_dailies():
         soup = BeautifulSoup(response.text, "html.parser")
         lang_data = lang_response.json()
 
-        rows = soup.find_all("div", class_="rows")
+        containers = soup.find_all("div", class_="daily-container")
 
-        for row in rows:
-            goal = row.find("p", class_="daily-goal")
-            text = row.find("p", class_="daily-general")
-
-            if not goal or not text:
+        for container in containers:
+            role_header = container.find("h4")
+            if not role_header:
                 continue
 
-            quantity = goal.get("data-goal")
-            key = text.get("data-text")
+            role_text = role_header.get("data-text", "")
 
-            if not quantity or not key:
-                continue
+            rows = container.find_all("div", class_="rows")
 
-            readable = lang_data.get(key, key)
-            formatted = format_quantity(quantity, readable)
+            formatted_rows = []
 
-            if key.startswith("mpgc_"):
-                general.append(formatted)
+            for row in rows:
+                goal = row.find("p", class_="daily-goal")
+                text = row.find("p", class_="daily-general")
 
-            elif key.startswith("mprc_"):
-                for role in roles:
-                    if role in key:
-                        roles[role].append(formatted)
-                        break
+                if not goal or not text:
+                    continue
 
-        # Keep only first 3 role challenges (Rank 15+)
-        for role in roles:
-            roles[role] = roles[role][:3]
+                quantity = goal.get("data-goal")
+                key = text.get("data-text")
+
+                if not quantity or not key:
+                    continue
+
+                readable = lang_data.get(key, key)
+                formatted = format_quantity(quantity, readable)
+                formatted_rows.append(formatted)
+
+            # GENERAL CHALLENGES
+            if "general" in role_text.lower():
+                general = formatted_rows
+
+            # ROLE CHALLENGES (only first 3 = Rank 15+)
+            elif "bounty" in role_text.lower():
+                roles["bounty"] = formatted_rows[:3]
+            elif "trader" in role_text.lower():
+                roles["trader"] = formatted_rows[:3]
+            elif "collector" in role_text.lower():
+                roles["collector"] = formatted_rows[:3]
+            elif "moonshiner" in role_text.lower():
+                roles["moonshiner"] = formatted_rows[:3]
+            elif "naturalist" in role_text.lower():
+                roles["naturalist"] = formatted_rows[:3]
 
     except Exception as e:
         print("Error fetching dailies:", e)
@@ -186,14 +201,6 @@ async def setdailychannel(interaction: discord.Interaction):
         f"Daily auto-post channel set to {interaction.channel.mention}",
         ephemeral=True
     )
-
-@setdailychannel.error
-async def setdailychannel_error(interaction: discord.Interaction, error):
-    if isinstance(error, commands.MissingPermissions):
-        await interaction.response.send_message(
-            "You need Manage Server permission to use this command.",
-            ephemeral=True
-        )
 
 # ---------------- AUTO POST ---------------- #
 
