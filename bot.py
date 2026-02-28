@@ -57,7 +57,7 @@ def fetch_dailies():
         "naturalist": []
     }
 
-    response = requests.get("https://rdo-dailies.com/")
+    response = requests.get("https://rdo-dailies.com/", timeout=10)
     soup = BeautifulSoup(response.text, "html.parser")
 
     lang_response = requests.get("https://rdo-dailies.com/website/languages/en.json")
@@ -189,3 +189,4 @@ async def auto_post():
             await channel.send(embed=embed)
 
 bot.run(TOKEN)
+
