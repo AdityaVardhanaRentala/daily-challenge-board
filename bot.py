@@ -81,17 +81,7 @@ def fetch_dailies():
 
             readable = lang_data.get(key, key)
 
-            qty = int(quantity)
-
-            # Fix money (stored as cents)
-            if "Money made" in readable:
-                qty = qty // 100
-
-            # Fix millisecond-based goals
-            elif qty > 100000:
-                qty = 1
-
-            formatted = f"• {qty} {readable}"
+            formatted = f"• {quantity} {readable}"
 
             # General challenges
             if key.startswith("mpgc_"):
