@@ -47,12 +47,15 @@ def save_config(data):
 def format_quantity(quantity, readable):
     qty = int(quantity)
 
+    # Fix money stored as cents
     if "Money made" in readable:
         qty = qty // 100
 
+    # Fix millisecond time values
     if qty > 100000:
         qty = 1
 
+    # Avoid duplicating numbers already inside text
     if any(word.isdigit() for word in readable.split()):
         return f"• {readable}"
     else:
@@ -82,7 +85,14 @@ def fetch_dailies():
 
         containers = soup.find_all("div", class_="daily-container")
 
-        for index, container in enumerate(containers):
+        for container in containers:
+            icon = container.find("img", class_="icon")
+            if not icon:
+                continue
+
+            icon_src = icon.get("src", "")
+            icon_file = icon_src.split("/")[-1].lower()
+
             rows = container.find_all("div", class_="rows")
             formatted_rows = []
 
@@ -103,17 +113,23 @@ def fetch_dailies():
                 formatted = format_quantity(quantity, readable)
                 formatted_rows.append(formatted)
 
-            if index == 0:
+            # Exact icon filename matching
+            if icon_file == "general_icon.png":
                 general = formatted_rows
-            elif index == 1:
+
+            elif icon_file == "bounty_icon.png":
                 roles["bounty"] = formatted_rows[:3]
-            elif index == 2:
+
+            elif icon_file == "trader_icon.png":
                 roles["trader"] = formatted_rows[:3]
-            elif index == 3:
+
+            elif icon_file == "collector_icon.png":
                 roles["collector"] = formatted_rows[:3]
-            elif index == 4:
+
+            elif icon_file == "moonshine_icon.png":
                 roles["moonshiner"] = formatted_rows[:3]
-            elif index == 5:
+
+            elif icon_file == "naturalist_icon.png":
                 roles["naturalist"] = formatted_rows[:3]
 
     except Exception as e:
