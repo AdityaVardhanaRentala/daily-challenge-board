@@ -87,7 +87,6 @@ def fetch_dailies():
 
             if key.startswith("mpgc_"):
                 general.append(formatted)
-
             elif key.startswith("mprc_"):
                 for role in roles:
                     if role in key:
@@ -149,9 +148,16 @@ async def on_ready():
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
+    # ACKNOWLEDGE IMMEDIATELY
+    await interaction.response.defer()
+
+    # Fetch in background thread
     general, roles = await bot.loop.run_in_executor(None, fetch_dailies)
+
     embed = build_embed(general, roles)
-    await interaction.response.send_message(embed=embed)
+
+    # Send final result
+    await interaction.followup.send(embed=embed)
 
 @bot.tree.command(name="setdailychannel", description="Set this channel for daily auto-posting")
 @commands.has_permissions(manage_guild=True)
