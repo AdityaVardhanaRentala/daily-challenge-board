@@ -148,16 +148,9 @@ async def on_ready():
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
-    # ACKNOWLEDGE IMMEDIATELY
-    await interaction.response.defer()
-
-    # Fetch in background thread
-    general, roles = await bot.loop.run_in_executor(None, fetch_dailies)
-
+    general, roles = fetch_dailies()
     embed = build_embed(general, roles)
-
-    # Send final result
-    await interaction.followup.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="setdailychannel", description="Set this channel for daily auto-posting")
 @commands.has_permissions(manage_guild=True)
@@ -203,3 +196,4 @@ async def auto_post():
             await channel.send(embed=embed)
 
 bot.run(TOKEN)
+
