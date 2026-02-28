@@ -170,9 +170,12 @@ async def on_ready():
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
+    await interaction.response.defer()
+
     general, roles = fetch_dailies()
     embed = build_embed(general, roles)
-    await interaction.response.send_message(embed=embed)
+
+    await interaction.followup.send(embed=embed)
 
 # ---------------- AUTO POST ---------------- #
 
@@ -207,6 +210,7 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
 
