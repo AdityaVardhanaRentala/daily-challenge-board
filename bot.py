@@ -47,12 +47,15 @@ def save_config(data):
 def format_quantity(quantity, readable):
     qty = int(quantity)
 
+    # Money stored as cents
     if "Money made" in readable:
         qty = qty // 100
 
+    # Large millisecond values (time-based goals)
     if qty > 100000:
         qty = 1
 
+    # Avoid duplicating numbers already in text
     if any(word.isdigit() for word in readable.split()):
         return f"• {readable}"
     else:
@@ -109,16 +112,22 @@ def fetch_dailies():
                 formatted = format_quantity(quantity, readable)
                 formatted_rows.append(formatted)
 
+            # Detect role using icon filename
             if "general_icon" in icon_src:
                 general = formatted_rows
+
             elif "bounty" in icon_src:
                 roles["bounty"] = formatted_rows[:3]
+
             elif "trader" in icon_src:
                 roles["trader"] = formatted_rows[:3]
+
             elif "collector" in icon_src:
                 roles["collector"] = formatted_rows[:3]
-            elif "moonshiner" in icon_src:
+
+            elif "moonshine" in icon_src:   # FIXED HERE
                 roles["moonshiner"] = formatted_rows[:3]
+
             elif "naturalist" in icon_src:
                 roles["naturalist"] = formatted_rows[:3]
 
@@ -154,7 +163,7 @@ def build_embed(general, roles):
     for role, challenges in roles.items():
         if challenges:
             embed.add_field(
-                name=f"{role_emojis.get(role, '⚪')} {role.capitalize()}",
+                name=f"{role_emojis.get(role)} {role.capitalize()}",
                 value="\n".join(challenges)[:1024],
                 inline=False
             )
@@ -170,7 +179,7 @@ async def on_ready():
     await bot.tree.sync()
     auto_post.start()
 
-# ---------------- COMMANDS ---------------- #
+# ---------------- COMMAND ---------------- #
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
