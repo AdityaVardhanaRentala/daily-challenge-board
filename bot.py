@@ -47,15 +47,12 @@ def save_config(data):
 def format_quantity(quantity, readable):
     qty = int(quantity)
 
-    # Fix money stored as cents
     if "Money made" in readable:
         qty = qty // 100
 
-    # Fix millisecond time values
     if qty > 100000:
         qty = 1
 
-    # Avoid duplicating numbers already inside text
     if any(word.isdigit() for word in readable.split()):
         return f"• {readable}"
     else:
@@ -113,11 +110,10 @@ def fetch_dailies():
                 formatted = format_quantity(quantity, readable)
                 formatted_rows.append(formatted)
 
-            # Exact icon filename matching
             if icon_file == "general_icon.png":
                 general = formatted_rows
 
-            elif icon_file == "bounty_icon.png":
+            elif icon_file == "bounty_hunter_icon.png":
                 roles["bounty"] = formatted_rows[:3]
 
             elif icon_file == "trader_icon.png":
@@ -126,7 +122,7 @@ def fetch_dailies():
             elif icon_file == "collector_icon.png":
                 roles["collector"] = formatted_rows[:3]
 
-            elif icon_file == "moonshine_icon.png":
+            elif icon_file == "moonshiner_icon.png":
                 roles["moonshiner"] = formatted_rows[:3]
 
             elif icon_file == "naturalist_icon.png":
