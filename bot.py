@@ -83,7 +83,22 @@ def fetch_dailies():
                 continue
 
             readable = lang_data.get(key, key)
-            formatted = f"• {quantity} {readable}"
+            # Convert quantity properly
+qty = int(quantity)
+
+# Fix money values (stored as cents)
+if "Money made" in readable:
+    qty = qty // 100
+
+# Fix large time values (milliseconds to single objective)
+elif qty > 100000:
+    qty = 1
+
+# Avoid duplicating numbers already in text
+if any(str(qty) in readable for qty in range(1, 25)):
+    formatted = f"• {readable}"
+else:
+    formatted = f"• {qty} {readable}"
 
             if key.startswith("mpgc_"):
                 general.append(formatted)
@@ -196,4 +211,5 @@ async def auto_post():
             await channel.send(embed=embed)
 
 bot.run(TOKEN)
+
 
