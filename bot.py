@@ -42,6 +42,17 @@ def save_config(data):
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f)
 
+def normalize_quantity(quantity, readable):
+    qty = int(quantity)
+
+    if "Money made" in readable:
+        return qty // 100
+
+    if qty > 100000:
+        return 1
+
+    return qty
+    
 # ---------------- FETCH DAILIES ---------------- #
 
 def fetch_dailies():
@@ -81,7 +92,8 @@ def fetch_dailies():
 
             readable = lang_data.get(key, key)
 
-            formatted = f"• {quantity} {readable}"
+            qty = normalize_quantity(quantity, readable)
+formatted = f"• {qty} {readable}"
 
             # General challenges
             if key.startswith("mpgc_"):
@@ -185,3 +197,4 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
