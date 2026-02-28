@@ -8,6 +8,7 @@ import datetime
 import pytz
 from flask import Flask
 import threading
+print("=== CLEAN RESET VERSION ===")
 
 # ---------------- WEB SERVER (RENDER KEEP ALIVE) ---------------- #
 
@@ -208,3 +209,4 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
