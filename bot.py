@@ -154,7 +154,7 @@ def build_embed(general, roles):
                 inline=False
             )
 
-    embed.set_footer(text="Built for people by T00R.")
+    embed.set_footer(text="Built for the people by T00R.")
     return embed
 
 # ---------------- EVENTS ---------------- #
@@ -204,3 +204,4 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
