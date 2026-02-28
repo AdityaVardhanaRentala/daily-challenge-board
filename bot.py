@@ -47,6 +47,27 @@ def save_config(data):
 
 # ---------------- FETCH DAILIES ---------------- #
 
+def format_quantity(quantity, readable):
+    qty = int(quantity)
+
+    # Fix money stored as cents
+    if "Money made" in readable:
+        qty = qty // 100
+
+    # Fix extremely large time-based values (milliseconds etc.)
+    if qty > 100000:
+        qty = 1
+
+    # If readable text already contains numbers, avoid duplication
+    words = readable.split()
+    contains_number = any(word.isdigit() for word in words)
+
+    if contains_number:
+        return f"• {readable}"
+    else:
+        return f"• {qty} {readable}"
+
+
 def fetch_dailies():
     general = []
     roles = {
@@ -83,31 +104,18 @@ def fetch_dailies():
                 continue
 
             readable = lang_data.get(key, key)
-            # Convert quantity properly
-qty = int(quantity)
-
-# Fix money values (stored as cents)
-if "Money made" in readable:
-    qty = qty // 100
-
-# Fix large time values (milliseconds to single objective)
-elif qty > 100000:
-    qty = 1
-
-# Avoid duplicating numbers already in text
-if any(str(qty) in readable for qty in range(1, 25)):
-    formatted = f"• {readable}"
-else:
-    formatted = f"• {qty} {readable}"
+            formatted = format_quantity(quantity, readable)
 
             if key.startswith("mpgc_"):
                 general.append(formatted)
+
             elif key.startswith("mprc_"):
                 for role in roles:
                     if role in key:
                         roles[role].append(formatted)
                         break
 
+        # Keep only first 3 role challenges (Rank 15+)
         for role in roles:
             roles[role] = roles[role][:3]
 
@@ -205,11 +213,8 @@ async def auto_post():
             if not channel:
                 continue
 
-            general, roles = await bot.loop.run_in_executor(None, fetch_dailies)
+            general, roles = fetch_dailies()
             embed = build_embed(general, roles)
-
             await channel.send(embed=embed)
 
 bot.run(TOKEN)
-
-
