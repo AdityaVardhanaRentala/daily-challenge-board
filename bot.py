@@ -100,7 +100,8 @@ def fetch_dailies():
             if key.startswith("mpgc_"):
                 general.append(formatted)
 
-            elif key.startswith("mprc_"):
+            else:
+                # Everything not general is role
                 if "bounty" in key:
                     roles["bounty"].append(formatted)
                 elif "trader" in key:
@@ -209,4 +210,5 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
