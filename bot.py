@@ -163,6 +163,13 @@ def build_embed(general, roles):
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
+
+    general, roles = fetch_dailies()
+
+    print("GENERAL COUNT:", len(general))
+    for role in roles:
+        print(role, "COUNT:", len(roles[role]))
+
     await bot.tree.sync()
     auto_post.start()
 
@@ -210,5 +217,6 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
