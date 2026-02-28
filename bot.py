@@ -81,34 +81,29 @@ def fetch_dailies():
 
             readable = lang_data.get(key, key)
 
+            # ----- FIXED QUANTITY LOGIC -----
             qty = int(quantity)
 
-# Fix money stored as cents
-if "Money made" in readable:
-    qty = qty // 100
+            if "Money made" in readable:
+                qty = qty // 100
+            elif qty > 100000:
+                qty = 1
 
-# Fix millisecond time-based goals
-elif qty > 100000:
-    qty = 1
+            if any(word.isdigit() for word in readable.split()):
+                formatted = f"• {readable}"
+            else:
+                formatted = f"• {qty} {readable}"
+            # --------------------------------
 
-# Avoid duplicating numbers already inside text
-if any(word.isdigit() for word in readable.split()):
-    formatted = f"• {readable}"
-else:
-    formatted = f"• {qty} {readable}"
-
-            # General challenges
             if key.startswith("mpgc_"):
                 general.append(formatted)
 
-            # Role challenges
             elif key.startswith("mprc_"):
                 for role in roles:
                     if role in key:
                         roles[role].append(formatted)
                         break
 
-        # Only keep first 3 role challenges (Rank 15+)
         for role in roles:
             roles[role] = roles[role][:3]
 
@@ -199,4 +194,5 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
