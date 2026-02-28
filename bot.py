@@ -76,6 +76,7 @@ def fetch_dailies():
 
             quantity = goal.get("data-goal")
             key = text.get("data-text")
+            print("KEY:", key)
             print(key)
 
             if not quantity or not key:
@@ -206,6 +207,7 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
 
