@@ -64,9 +64,6 @@ def fetch_dailies():
             timeout=10
         )
 
-        response.raise_for_status()
-        lang_response.raise_for_status()
-
         soup = BeautifulSoup(response.text, "html.parser")
         lang_data = lang_response.json()
 
@@ -97,7 +94,6 @@ def fetch_dailies():
                         roles[role].append(formatted)
                         break
 
-        # Keep only first 3 role challenges (Rank 15+)
         for role in roles:
             roles[role] = roles[role][:3]
 
@@ -153,12 +149,9 @@ async def on_ready():
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
-    await interaction.response.defer()
-
     general, roles = await bot.loop.run_in_executor(None, fetch_dailies)
     embed = build_embed(general, roles)
-
-    await interaction.followup.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="setdailychannel", description="Set this channel for daily auto-posting")
 @commands.has_permissions(manage_guild=True)
