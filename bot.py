@@ -81,7 +81,6 @@ def fetch_dailies():
 
             readable = lang_data.get(key, key)
 
-            # ----- FIXED QUANTITY LOGIC -----
             qty = int(quantity)
 
             if "Money made" in readable:
@@ -93,17 +92,28 @@ def fetch_dailies():
                 formatted = f"• {readable}"
             else:
                 formatted = f"• {qty} {readable}"
-            # --------------------------------
+
+            # ---- ROLE MAPPING FIXED ----
 
             if key.startswith("mpgc_"):
                 general.append(formatted)
 
-            elif key.startswith("mprc_"):
-                for role in roles:
-                    if role in key:
-                        roles[role].append(formatted)
-                        break
+            elif key.startswith("mprc_bounty"):
+                roles["bounty"].append(formatted)
 
+            elif key.startswith("mprc_trader"):
+                roles["trader"].append(formatted)
+
+            elif key.startswith("mprc_collector"):
+                roles["collector"].append(formatted)
+
+            elif key.startswith("mprc_moonshine"):
+                roles["moonshiner"].append(formatted)
+
+            elif key.startswith("mprc_naturalist"):
+                roles["naturalist"].append(formatted)
+
+        # Only first 3 = Rank 15+
         for role in roles:
             roles[role] = roles[role][:3]
 
@@ -194,5 +204,6 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
