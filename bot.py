@@ -133,17 +133,17 @@ def build_embed(general, roles):
 
     if general:
         embed.add_field(
-            name="🟢 General Challenges",
+            name=":dailies28: General Challenges",
             value="\n".join(general)[:1024],
             inline=False
         )
 
     role_emojis = {
-        "bounty": "🟡",
-        "trader": "🟠",
-        "collector": "🟣",
-        "moonshiner": "🔴",
-        "naturalist": "🔵"
+        "bounty": ":bounty:",
+        "trader": ":trader:",
+        "collector": ":collector:",
+        "moonshiner": ":moonshiner:",
+        "naturalist": ":naturalist:"
     }
 
     for role, challenges in roles.items():
@@ -204,3 +204,4 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
