@@ -8,9 +8,8 @@ import datetime
 import pytz
 from flask import Flask
 import threading
-print("=== VERSION CHECK 28 FEB 1 ===")
 
-# ---------------- WEB SERVER FOR RENDER ---------------- #
+# ---------------- WEB SERVER (RENDER KEEP ALIVE) ---------------- #
 
 app = Flask(__name__)
 
@@ -22,7 +21,7 @@ def run_web():
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
 
-# ---------------- DISCORD BOT SETUP ---------------- #
+# ---------------- DISCORD SETUP ---------------- #
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 CONFIG_FILE = "config.json"
@@ -76,14 +75,13 @@ def fetch_dailies():
 
             quantity = goal.get("data-goal")
             key = text.get("data-text")
-            print("KEY:", key)
-            print(key)
 
             if not quantity or not key:
                 continue
 
             readable = lang_data.get(key, key)
 
+            # ---- FIX QUANTITY ----
             qty = int(quantity)
 
             if "Money made" in readable:
@@ -95,28 +93,26 @@ def fetch_dailies():
                 formatted = f"• {readable}"
             else:
                 formatted = f"• {qty} {readable}"
+            # ----------------------
 
-            # ---- ROLE MAPPING FIXED ----
-
+            # ---- ROLE MAPPING ----
             if key.startswith("mpgc_"):
                 general.append(formatted)
 
-            elif key.startswith("mprc_bounty"):
-                roles["bounty"].append(formatted)
+            elif key.startswith("mprc_"):
+                if "bounty" in key:
+                    roles["bounty"].append(formatted)
+                elif "trader" in key:
+                    roles["trader"].append(formatted)
+                elif "collector" in key:
+                    roles["collector"].append(formatted)
+                elif "moonshine" in key:
+                    roles["moonshiner"].append(formatted)
+                elif "naturalist" in key:
+                    roles["naturalist"].append(formatted)
+            # ----------------------
 
-            elif key.startswith("mprc_trader"):
-                roles["trader"].append(formatted)
-
-            elif key.startswith("mprc_collector"):
-                roles["collector"].append(formatted)
-
-            elif key.startswith("mprc_moonshine"):
-                roles["moonshiner"].append(formatted)
-
-            elif key.startswith("mprc_naturalist"):
-                roles["naturalist"].append(formatted)
-
-        # Only first 3 = Rank 15+
+        # Only first 3 (Rank 15+)
         for role in roles:
             roles[role] = roles[role][:3]
 
@@ -152,7 +148,7 @@ def build_embed(general, roles):
     for role, challenges in roles.items():
         if challenges:
             embed.add_field(
-                name=f"{role_emojis.get(role)} {role.capitalize()}",
+                name=f"{role_emojis[role]} {role.capitalize()}",
                 value="\n".join(challenges)[:1024],
                 inline=False
             )
@@ -167,6 +163,8 @@ async def on_ready():
     print(f"Logged in as {bot.user}")
     await bot.tree.sync()
     auto_post.start()
+
+# ---------------- SLASH COMMAND ---------------- #
 
 @bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
 async def dailies(interaction: discord.Interaction):
@@ -199,21 +197,14 @@ async def auto_post():
             embed = build_embed(general, roles)
             await channel.send(embed=embed)
 
-# ---------------- STARTUP ---------------- #
+# ---------------- START ---------------- #
 
 if __name__ == "__main__":
     web_thread = threading.Thread(target=run_web)
     web_thread.start()
 
     if not TOKEN:
-        print("ERROR: DISCORD_TOKEN is not set.")
+        print("ERROR: DISCORD_TOKEN not set.")
         exit(1)
 
     bot.run(TOKEN)
-
-
-
-
-
-
-
