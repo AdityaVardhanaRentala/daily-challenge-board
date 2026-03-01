@@ -134,9 +134,9 @@ def build_embed(general, roles):
     # Date formatting
     date_str = f"{ordinal(now.day)} {now.strftime('%b, %Y')}"
 
-    # Next 11:31 IST timestamp
+    # Next 11:32 IST timestamp
     next_post = IST.localize(datetime.datetime(
-        now.year, now.month, now.day, 11, 31
+        now.year, now.month, now.day, 11, 32
     ))
 
     if now > next_post:
@@ -214,7 +214,7 @@ async def setdailychannel(interaction: discord.Interaction):
 async def auto_post():
     now = datetime.datetime.now(IST)
 
-    if now.hour == 11 and now.minute == 31:
+    if now.hour == 11 and now.minute == 32:
         config = load_config()
 
         for guild_id, channel_id in config.items():
@@ -241,3 +241,4 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
