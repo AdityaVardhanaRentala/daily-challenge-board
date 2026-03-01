@@ -58,6 +58,15 @@ def normalize_quantity(quantity, readable):
 
     return qty
 
+# ---------------- DATE FORMAT ---------------- #
+
+def ordinal(n):
+    if 10 <= n % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return str(n) + suffix
+
 # ---------------- FETCH DAILIES ---------------- #
 
 def fetch_dailies():
@@ -120,9 +129,24 @@ def fetch_dailies():
 # ---------------- EMBED ---------------- #
 
 def build_embed(general, roles):
+    now = datetime.datetime.now(IST)
+
+    # Date formatting
+    date_str = f"{ordinal(now.day)} {now.strftime('%b, %Y')}"
+
+    # Next 11:31 IST timestamp
+    next_post = IST.localize(datetime.datetime(
+        now.year, now.month, now.day, 11, 31
+    ))
+
+    if now > next_post:
+        next_post += datetime.timedelta(days=1)
+
+    timestamp = int(next_post.timestamp())
+
     embed = discord.Embed(
-        title="Daily Challenges",
-        description="Rank 15+ Role Challenges",
+        title=f"Daily Challenges ({date_str})",
+        description=f"Rank 15+ Role Challenges\nPosts daily at <t:{timestamp}:t>",
         color=0x8B0000
     )
 
@@ -165,8 +189,6 @@ async def dailies(interaction: discord.Interaction):
     general, roles = fetch_dailies()
     embed = build_embed(general, roles)
     await interaction.response.send_message(embed=embed)
-
-# ---------------- SET DAILY CHANNEL COMMAND ---------------- #
 
 @bot.tree.command(name="setdailychannel", description="Set this channel for automatic daily posts")
 async def setdailychannel(interaction: discord.Interaction):
