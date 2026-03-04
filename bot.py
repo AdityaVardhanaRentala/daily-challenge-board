@@ -214,7 +214,7 @@ async def setdailychannel(interaction: discord.Interaction):
 async def auto_post():
     now = datetime.datetime.now(IST)
 
-    if now.hour == 22 and now.minute == 00:
+    if now.hour == 11 and now.minute == 32:
         config = load_config()
 
         for guild_id, channel_id in config.items():
@@ -241,6 +241,7 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
 
