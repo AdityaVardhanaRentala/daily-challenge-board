@@ -50,10 +50,12 @@ def normalize_quantity(quantity, readable):
     except:
         return quantity
 
+    # Money is stored as cents
     if "Money made" in readable:
         return qty // 100
 
-    if qty > 100000:
+    #Time based challenges like "Don't kill an animal for 24 game hours"
+    if "game hours" in readable:
         return 1
 
     return qty
@@ -241,6 +243,7 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
 
