@@ -50,7 +50,11 @@ def normalize_quantity(quantity, readable):
     except:
         return quantity
 
-    # Money is stored as cents
+    #Do NOT modify distance challenges
+    if "Distance" in readable:
+        return qty
+        
+    # Money stored as cents
     if "Money made" in readable:
         return qty // 100
 
@@ -243,6 +247,7 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
 
