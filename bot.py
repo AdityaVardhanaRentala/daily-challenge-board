@@ -54,8 +54,8 @@ def normalize_quantity(quantity, readable):
     if "Money made" in readable:
         return qty // 100
 
-    #Time based challenges like "Don't kill an animal for 24 game hours"
-    if "game hours" in readable:
+    #Time based challenges (milliseconds)
+    if qty >= 100000:
         return 1
 
     return qty
@@ -243,6 +243,7 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
+
 
 
 
