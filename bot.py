@@ -35,6 +35,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 def load_config():
     if not os.path.exists(CONFIG_FILE):
         return {}
+
     with open(CONFIG_FILE, "r") as f:
         return json.load(f)
 
@@ -50,15 +51,15 @@ def normalize_quantity(quantity, readable):
     except:
         return quantity
 
-    #Do NOT modify distance challenges
+    # Do NOT modify distance challenges
     if "Distance" in readable:
         return qty
-        
+
     # Money stored as cents
     if "Money made" in readable:
         return qty // 100
 
-    #Time based challenges (milliseconds)
+    # Time based challenges (milliseconds)
     if qty >= 100000:
         return 1
 
@@ -71,12 +72,14 @@ def ordinal(n):
         suffix = "th"
     else:
         suffix = {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+
     return str(n) + suffix
 
 # ---------------- FETCH DAILIES ---------------- #
 
 def fetch_dailies():
     general = []
+
     roles = {
         "bounty": [],
         "trader": [],
@@ -86,7 +89,11 @@ def fetch_dailies():
     }
 
     try:
-        response = requests.get("https://rdo-dailies.com/", timeout=10)
+        response = requests.get(
+            "https://rdo-dailies.com/",
+            timeout=10
+        )
+
         lang_response = requests.get(
             "https://rdo-dailies.com/website/languages/en.json",
             timeout=10
@@ -113,6 +120,7 @@ def fetch_dailies():
             readable = lang_data.get(key, key)
 
             qty = normalize_quantity(quantity, readable)
+
             formatted = f"• {qty} {readable}"
 
             if key.startswith("mpgc_"):
@@ -142,7 +150,11 @@ def build_embed(general, roles):
 
     # Next 11:32 IST timestamp
     next_post = IST.localize(datetime.datetime(
-        now.year, now.month, now.day, 11, 32
+        now.year,
+        now.month,
+        now.day,
+        11,
+        32
     ))
 
     if now > next_post:
@@ -180,6 +192,7 @@ def build_embed(general, roles):
             )
 
     embed.set_footer(text="Built for the people by T00R.")
+
     return embed
 
 # ---------------- EVENTS ---------------- #
@@ -187,17 +200,38 @@ def build_embed(general, roles):
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
-    await bot.tree.sync()
-    auto_post.start()
 
-@bot.tree.command(name="dailies", description="Fetch today's RDO daily challenges (Rank 15+)")
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {len(synced)} slash commands.")
+
+    except Exception as e:
+        print("Slash command sync failed:", e)
+
+    # Prevent task loop from starting twice
+    if not auto_post.is_running():
+        auto_post.start()
+        print("Auto-post loop started.")
+
+# ---------------- SLASH COMMANDS ---------------- #
+
+@bot.tree.command(
+    name="dailies",
+    description="Fetch today's RDO daily challenges (Rank 15+)"
+)
 async def dailies(interaction: discord.Interaction):
     general, roles = fetch_dailies()
+
     embed = build_embed(general, roles)
+
     await interaction.response.send_message(embed=embed)
 
-@bot.tree.command(name="setdailychannel", description="Set this channel for automatic daily posts")
+@bot.tree.command(
+    name="setdailychannel",
+    description="Set this channel for automatic daily posts"
+)
 async def setdailychannel(interaction: discord.Interaction):
+
     if not interaction.user.guild_permissions.manage_guild:
         await interaction.response.send_message(
             "You need Manage Server permission to use this command.",
@@ -206,7 +240,9 @@ async def setdailychannel(interaction: discord.Interaction):
         return
 
     config = load_config()
+
     config[str(interaction.guild.id)] = interaction.channel.id
+
     save_config(config)
 
     await interaction.response.send_message(
@@ -216,29 +252,58 @@ async def setdailychannel(interaction: discord.Interaction):
 
 # ---------------- AUTO POST ---------------- #
 
+@auto_post.before_loop
+async def before_auto_post():
+    await bot.wait_until_ready()
+
 @tasks.loop(minutes=1)
 async def auto_post():
     now = datetime.datetime.now(IST)
 
+    print(f"Checking schedule: {now.strftime('%H:%M:%S')}")
+
     if now.hour == 11 and now.minute == 32:
+
+        print("Posting dailies...")
+
         config = load_config()
 
         for guild_id, channel_id in config.items():
+
             guild = bot.get_guild(int(guild_id))
+
             if not guild:
+                print(f"Guild not found: {guild_id}")
                 continue
 
             channel = guild.get_channel(channel_id)
+
             if not channel:
+                print(f"Channel not found: {channel_id}")
                 continue
 
-            general, roles = fetch_dailies()
-            embed = build_embed(general, roles)
-            await channel.send(embed=embed)
+            try:
+                general, roles = fetch_dailies()
+
+                embed = build_embed(general, roles)
+
+                await channel.send(embed=embed)
+
+                print(
+                    f"Successfully posted in "
+                    f"{guild.name} -> #{channel.name}"
+                )
+
+            except Exception as e:
+                print(
+                    f"Failed posting in guild "
+                    f"{guild_id}: {e}"
+                )
 
 # ---------------- STARTUP ---------------- #
 
 if __name__ == "__main__":
+
     web_thread = threading.Thread(target=run_web)
     web_thread.start()
 
@@ -247,13 +312,3 @@ if __name__ == "__main__":
         exit(1)
 
     bot.run(TOKEN)
-
-
-
-
-
-
-
-
-
-
